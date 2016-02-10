@@ -70,23 +70,21 @@ class SSD1306:
         self.i2c = i2c
         self.pwr = pwr
 
-        self.power_on()
-        # set disp off   : 0xae
-        # set clock div  : 0xd5, 0x80
-        # set multiplex  : 0xa8, 0x3f (for 32px: 0x1f)
-        # set disp offset: 0xd3 0x00
-        # set start line : 0x40|0x00
-        # chargepump on  : 0x8d, 0x14 (ext. VCC: 0x10)
-        # memory mode    : 0x20, 0x00
-        # segment remap  : 0xa0|0x10 (invalid value: 0xb0, maybe 0x01?)
-        # com scan dir   : 0xc8 (decreasing, inc.: 0xc0)
-        # com pins       : 0xda, 0x12 (for 32px: 0x02)
-        # contrast       : 0x81, 0xff
-        # precharge      : 0xd9, 0xf1 (ext. VCC: 0x22 = RESET)
-        # Vcom deselect  : 0xdb, 0x40
-        # disp resume ram: 0xa4
-        # disp not invers: 0xa6
-        # set disp on    : 0xaf
+        self.power_on()   # enable power to the display
+        self.set_power(self.POWER_DOWN)   # set display to sleep mode
+        self.command([0xd5, 0x80])   # set clock divider
+        self.command([0xa8, 0x3f])   # set multiplex to 0x3f (for 32px: 0x1f)
+        self.command([0xd3, 0x00])   # set disp offset to 0
+        self.command(0x40|0x00)   # set start line to 0
+        self.command([0x8d, 0x14])   # chargepump on (ext. VCC - off: 0x10)
+        self.set_addressing(self.ADDRESSING_HORIZ)
+        self.command(0xa0|0x10)   # segment remap (invalid value: 0xb0, maybe 0x01?)
+        self.command(0xc8)   # com scan dir decreasing (inc.: 0xc0)
+        self.command([0xda, 0x12])   # com pins (for 32px: 0x02)
+        self.set_contrast(255)
+        self.command([0xd9, 0xf1])   # precharge (ext. VCC: 0x22 = RESET)
+        self.command([0xdb, 0x40])   # Vcom deselect
+        self.set_display(DISPLAY_NORMAL)   # enables and sets disp to show RAM contents, not inversed
         self.clear()
 
     def set_power(self, power, set=True):
@@ -109,7 +107,7 @@ class SSD1306:
 
     def set_contrast(self, value):
         """ set OLED contrast """
-        assert 0x00 <= value <= 0xff, "Contrast value must be between 0x00 and 0xff"
+        assert 0x00 <= value <= 0xff, "Contrast value must be between 0 and 255"
         self.command([0x81, value])
 
     def position(self, x, y):
