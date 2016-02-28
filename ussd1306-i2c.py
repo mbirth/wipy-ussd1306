@@ -69,11 +69,14 @@ class SSD1306:
 
         self.i2c = i2c
         self.pwr = pwr
+        self.osc_freq  = 8
+        self.clock_div = 1
 
         self.power_on()   # enable power to the display
         self.set_power(self.POWER_DOWN)   # set display to sleep mode
-        self.command([0xd5, 0x80])   # set clock divider
-        self.command([0xa8, 0x3f])   # set multiplex to 0x3f (for 32px: 0x1f)
+        self.set_osc_freq(8, False)       # set oscillator freq., but don't send to LCD yet
+        self.set_clock_div(1)             # set clock div and send osc_freq+clock_div to LCD
+        self.set_mux_ratio(self.height)   # set multiplex ratio to 64 (default), for 32px: 32
         self.command([0xd3, 0x00])   # set disp offset to 0
         self.command(0x40|0x00)   # set start line to 0
         self.command([0x8d, 0x14])   # chargepump on (ext. VCC - off: 0x10)
@@ -87,11 +90,35 @@ class SSD1306:
         self.set_display(DISPLAY_NORMAL)   # enables and sets disp to show RAM contents, not inversed
         self.clear()
 
-    def set_power(self, power, set=True):
+    def set_power(self, power):
         """ Sets the power mode of the LCD controller """
         assert power in [self.POWER_UP, self.POWER_DOWN], "Power must be POWER_UP or POWER_DOWN."
         self.power = power
         self.command(power)
+
+    def _set_oscfreqclockdiv(self):
+        """ Sets the oscillator frequency and clock divider value """
+        value = (self.osc_freq << 4) | (self.clock_div-1)
+        self.command([0xd5, value])
+
+    def set_osc_freq(self, osc_freq, set=True):
+        """ Stores and sets the oscillator frequency """
+        assert 0 <= osc_freq < 16, "Oscillator frequency must be between 0 and 15."
+        self.osc_freq = osc_freq
+        if set:
+            self._set_oscfreqclockdiv()
+
+    def set_clock_div(self, clock_div, set=True):
+        """ Stores and sets clock divider """
+        assert 0 < clock_div <= 16, "Clock divider must be between 1 and 16."
+        self.clock_div = clock_div
+        if set:
+            self._set_oscfreqclockdiv()
+
+    def set_mux_ratio(self, mux_ratio):
+        """ Sets the multiplex ratio. """
+        assert 16 <= mux_ratio <= 64, "Mux ratio must be between 16 and 64."
+        self.command([0xa8, (mux_ratio-1)])
 
     def set_adressing(self, addr):
         """ Sets the adressing mode """
