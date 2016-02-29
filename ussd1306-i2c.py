@@ -77,8 +77,8 @@ class SSD1306:
         self.set_osc_freq(8, False)       # set oscillator freq., but don't send to LCD yet
         self.set_clock_div(1)             # set clock div and send osc_freq+clock_div to LCD
         self.set_mux_ratio(self.height)   # set multiplex ratio to 64 (default), for 32px: 32
-        self.command([0xd3, 0x00])   # set disp offset to 0
-        self.command(0x40|0x00)   # set start line to 0
+        self.set_disp_offset(0)           # set display offset to 0
+        self.set_disp_start_line(0)       # set display start line to 0
         self.command([0x8d, 0x14])   # chargepump on (ext. VCC - off: 0x10)
         self.set_addressing(self.ADDRESSING_HORIZ)
         self.command(0xa0|0x10)   # segment remap (invalid value: 0xb0, maybe 0x01?)
@@ -119,6 +119,16 @@ class SSD1306:
         """ Sets the multiplex ratio. """
         assert 16 <= mux_ratio <= 64, "Mux ratio must be between 16 and 64."
         self.command([0xa8, (mux_ratio-1)])
+
+    def set_disp_offset(self, offset):
+        """ Sets the display offset (vertical shift). """
+        assert 0 <= offset < 63, "Offset must be between 0 and 63."
+        self.command([0xd3, offset])
+
+    def set_disp_start_line(self, start_line):
+        """ Sets the display RAM start line register. """
+        assert 0 <= start_line < 63, "Start line must be between 0 and 63."
+        self.command(0x40 | start_line)
 
     def set_adressing(self, addr):
         """ Sets the adressing mode """
