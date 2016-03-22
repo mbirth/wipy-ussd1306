@@ -79,10 +79,10 @@ class SSD1306:
         self.set_mux_ratio(self.height)   # set multiplex ratio to 64 (default), for 32px: 32
         self.set_disp_offset(0)           # set display offset to 0
         self.set_disp_start_line(0)       # set display start line to 0
-        self.command([0x8d, 0x14])   # chargepump on (ext. VCC - off: 0x10)
+        self.set_chargepump_enabled(True) # chargepump on (ext. VCC: off)
         self.set_addressing(self.ADDRESSING_HORIZ)
-        self.command(0xa0|0x10)   # segment remap (invalid value: 0xb0, maybe 0x01?)
-        self.command(0xc8)   # com scan dir decreasing (inc.: 0xc0)
+        self.set_segment_remap_enabled(False)
+        self.set_com_output_scan_dir_remap_enabled(False)
         self.command([0xda, 0x12])   # com pins (for 32px: 0x02)
         self.set_contrast(255)
         self.command([0xd9, 0xf1])   # precharge (ext. VCC: 0x22 = RESET)
@@ -95,6 +95,21 @@ class SSD1306:
         assert power in [self.POWER_UP, self.POWER_DOWN], "Power must be POWER_UP or POWER_DOWN."
         self.power = power
         self.command(power)
+
+    def set_com_output_scan_dir_remap_enabled(self, status):
+        """ Enables or disables COM output scan direction remapping. """
+        assert isinstance(status, bool), "Status must be True or False."
+        self.command((0xc8 if status else 0xc0))
+
+    def set_segment_remap_enabled(self, status):
+        """ Enables or disables segment remapping. """
+        assert isinstance(status, bool), "Status must be True or False."
+        self.command((0xa1 if status else 0xa0))
+
+    def set_chargepump_enabled(self, status):
+        """ Enables or disables the charge pump. """
+        assert isinstance(status, bool), "Status must be True or False."
+        self.command([0x8d, (0x14 if status else 0x10)])
 
     def _set_oscfreqclockdiv(self):
         """ Sets the oscillator frequency and clock divider value """
