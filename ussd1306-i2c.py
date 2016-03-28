@@ -44,7 +44,7 @@ class SSD1306:
     POWER_DOWN = 0xae
     DISPLAY_BLANK   = 0xae
     DISPLAY_ALL     = 0xa5
-    DISPLAY_NORMAL  = [0xaf, 0xa4, 0xa6]
+    DISPLAY_NORMAL  = [0xa4, 0xa6, 0xaf]
     DISPLAY_INVERSE = 0xa7
     DC_CMD  = 0x80
     DC_DATA = 0x40
@@ -74,17 +74,17 @@ class SSD1306:
 
         self.power_on()   # enable power to the display
         self.set_power(self.POWER_DOWN)   # set display to sleep mode
-        self.set_osc_freq(8, False)       # set oscillator freq., but don't send to LCD yet
-        self.set_clock_div(1)             # set clock div and send osc_freq+clock_div to LCD
         self.set_mux_ratio(self.height)   # set multiplex ratio to 64 (default), for 32px: 32
         self.set_disp_offset(0)           # set display offset to 0
         self.set_disp_start_line(0)       # set display start line to 0
-        self.set_chargepump_enabled(True) # chargepump on (ext. VCC: off)
-        self.set_addressing(self.ADDRESSING_HORIZ)
         self.set_segment_remap_enabled(False)
         self.set_com_output_scan_dir_remap_enabled(False)
         self.set_com_pins_hw_config(True, False)    # COM pins (for 32px: False, False)
         self.set_contrast(255)
+        self.set_osc_freq(8, False)       # set oscillator freq., but don't send to LCD yet
+        self.set_clock_div(1)             # set clock div and send osc_freq+clock_div to LCD
+        self.set_chargepump_enabled(True) # chargepump on (ext. VCC: off)
+        self.set_addressing(self.ADDRESSING_HORIZ)
         self.set_precharge_period(15, 1)   # with ext. VCC: 2, 2 (RESET)
         self.set_vcomh_deselect_level(4)
         self.set_display(DISPLAY_NORMAL)   # enables and sets disp to show RAM contents, not inversed
