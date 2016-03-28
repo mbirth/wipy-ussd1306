@@ -83,10 +83,10 @@ class SSD1306:
         self.set_addressing(self.ADDRESSING_HORIZ)
         self.set_segment_remap_enabled(False)
         self.set_com_output_scan_dir_remap_enabled(False)
-        self.command([0xda, 0x12])   # com pins (for 32px: 0x02)
+        self.set_com_pins_hw_config(True, False)    # COM pins (for 32px: False, False)
         self.set_contrast(255)
-        self.command([0xd9, 0xf1])   # precharge (ext. VCC: 0x22 = RESET)
-        self.command([0xdb, 0x40])   # Vcom deselect
+        self.set_precharge_period(15, 1)   # with ext. VCC: 2, 2 (RESET)
+        self.set_vcomh_deselect_level(4)
         self.set_display(DISPLAY_NORMAL)   # enables and sets disp to show RAM contents, not inversed
         self.clear()
 
@@ -95,6 +95,31 @@ class SSD1306:
         assert power in [self.POWER_UP, self.POWER_DOWN], "Power must be POWER_UP or POWER_DOWN."
         self.power = power
         self.command(power)
+
+    def set_vcomh_deselect_level(self, level):
+        """ Sets the Vcomh deselect level. """
+        assert 0 <= level < 8, "Level must be between 0 (0.65*Vcc) and 7 (1.07*Vcc)"
+        value = (level << 4)
+        self.command([0xdb, value])
+
+    def set_precharge_period(self, phase1_dclk, phase2_dclk):
+        """ Sets the pre-charge period for both phases. """
+        assert 0 < phase1_dclk < 16, "phase1_dclk must be between 1 and 15. (2 = RESET)"
+        assert 0 < phase2_dclk < 16, "phase2_dclk must be between 1 and 15. (2 = RESET)"
+        value = (phase2_dclk << 4)
+        value |= phase1_dclk
+        self.command([0xd9, value])
+
+    def set_com_pins_hw_config(self, enable_alt_config, enable_lr_remap):
+        """ Sets the COM pins hardware configuration. """
+        assert isinstance(enable_alt_config, bool), "enable_alt_config must be True or False."
+        assert isinstance(enable_lr_remap, bool), "enable_lr_remap must be True or False."
+        value = 0x02
+        if enable_alt_config:
+            value |= 0x10
+        if enable_lr_remap:
+            value |= 0x20
+        self.command([0xda, value])
 
     def set_com_output_scan_dir_remap_enabled(self, status):
         """ Enables or disables COM output scan direction remapping. """
