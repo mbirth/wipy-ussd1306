@@ -42,14 +42,14 @@ class SSD1306:
     ADDRESSING_PAGE  = 0x02
     POWER_UP   = 0xaf
     POWER_DOWN = 0xae
-    DISPLAY_BLANK   = 0xae
-    DISPLAY_ALL     = 0xa5
+    DISPLAY_BLANK   = [0xae]
+    DISPLAY_ALL     = [0xa5]
     DISPLAY_NORMAL  = [0xa4, 0xa6, 0xaf]
-    DISPLAY_INVERSE = 0xa7
+    DISPLAY_INVERSE = [0xa7]
     DC_CMD  = 0x80
     DC_DATA = 0x40
 
-    def __init__(self, i2c, pwr=None, devid=0x3c):
+    def __init__(self, i2c, pins=('GP15', 'GP10'), pwr=None, devid=0x3c):
         self.width  = 128
         self.height = 64
         self.devid      = devid
@@ -58,7 +58,7 @@ class SSD1306:
         self.display_mode = self.DISPLAY_NORMAL
 
         # init the I2C bus and pins
-        i2c.init(i2c.MASTER, baudrate=400000)   # 400 kHz
+        i2c.init(i2c.MASTER, baudrate=400000, pins=pins)   # 400 kHz
         if pwr:
             if "OUT_PP" in dir(pwr):
                 # pyBoard style
@@ -85,16 +85,16 @@ class SSD1306:
         self.set_clock_div(1)             # set clock div and send osc_freq+clock_div to LCD
         self.set_chargepump_enabled(True) # chargepump on (ext. VCC: off)
         self.set_addressing(self.ADDRESSING_HORIZ)
-        self.set_precharge_period(15, 1)   # with ext. VCC: 2, 2 (RESET)
+        self.set_precharge_period(1, 15)   # with ext. VCC: 2, 2 (RESET)
         self.set_vcomh_deselect_level(4)
-        self.set_display(DISPLAY_NORMAL)   # enables and sets disp to show RAM contents, not inversed
+        self.set_display(self.DISPLAY_NORMAL)   # enables and sets disp to show RAM contents, not inversed
         self.clear()
 
     def set_power(self, power):
         """ Sets the power mode of the LCD controller """
         assert power in [self.POWER_UP, self.POWER_DOWN], "Power must be POWER_UP or POWER_DOWN."
         self.power = power
-        self.command(power)
+        self.command([power])
 
     def set_vcomh_deselect_level(self, level):
         """ Sets the Vcomh deselect level. """
@@ -124,12 +124,12 @@ class SSD1306:
     def set_com_output_scan_dir_remap_enabled(self, status):
         """ Enables or disables COM output scan direction remapping. """
         assert isinstance(status, bool), "Status must be True or False."
-        self.command((0xc8 if status else 0xc0))
+        self.command([(0xc8 if status else 0xc0)])
 
     def set_segment_remap_enabled(self, status):
         """ Enables or disables segment remapping. """
         assert isinstance(status, bool), "Status must be True or False."
-        self.command((0xa1 if status else 0xa0))
+        self.command([(0xa1 if status else 0xa0)])
 
     def set_chargepump_enabled(self, status):
         """ Enables or disables the charge pump. """
@@ -168,9 +168,9 @@ class SSD1306:
     def set_disp_start_line(self, start_line):
         """ Sets the display RAM start line register. """
         assert 0 <= start_line < 63, "Start line must be between 0 and 63."
-        self.command(0x40 | start_line)
+        self.command([0x40 | start_line])
 
-    def set_adressing(self, addr):
+    def set_addressing(self, addr):
         """ Sets the adressing mode """
         assert addr in [self.ADDRESSING_HORIZ, self.ADDRESSING_VERT, self.ADDRESSING_PAGE], "Addressing must be ADDRESSING_HORIZ, ADDRESSING_VERT or ADDRESSING_PAGE."
         self.addressing = addr
@@ -180,7 +180,7 @@ class SSD1306:
         """ Sets display mode (blank, black, normal, inverse) """
         assert display_mode in [self.DISPLAY_BLANK, self.DISPLAY_ALL, self.DISPLAY_NORMAL, self.DISPLAY_INVERSE], "Mode must be one of DISPLAY_BLANK, DISPLAY_ALL, DISPLAY_NORMAL or DISPLAY_INVERSE."
         self.display_mode = display_mode
-        self.command([display_mode])
+        self.command(display_mode)
 
     def set_contrast(self, value):
         """ set OLED contrast """
@@ -191,7 +191,7 @@ class SSD1306:
         """ set cursor to page y, column x """
         assert 0 <= x < self.width, "x must be between 0 and 127"
         assert 0 <= y < self.height // 8, "y must be between 0 and 7"
-        self.command([0x20, 0x00, x, 0x21, 0x00, y])
+        self.command([0x21, x, 0x7f, 0x22, y, 0x07])
 
     def clear(self):
         """ clear screen """
@@ -214,7 +214,7 @@ class SSD1306:
     def power_on(self):
         if self.pwr:
             self.pwr.value(1)
-        self.reset()
+        #self.reset()
 
     def reset(self):
         """ issue reset impulse to reset the display """
@@ -245,7 +245,11 @@ class SSD1306:
 
     def command(self, arr):
         """ send bytes in command mode """
-        self.bitmap(arr, self.DC_CMD)
+        arr2 = []
+        for i in arr:
+            arr2.append(self.DC_CMD)
+            arr2.append(i)
+        self.bitmap(arr2[1::], self.DC_CMD)
 
     def data(self, arr):
         """ send bytes in data mode """
@@ -253,6 +257,8 @@ class SSD1306:
 
     def bitmap(self, arr, dc):
         arr = [dc] + arr
+        #print(repr(arr))
         buf = struct.pack('B'*len(arr), *arr)
-        self.i2c.send(buf, addr=self.devid, timeout=5000)
+        print(repr(buf))
+        self.i2c.writeto(self.devid, buf)
 
