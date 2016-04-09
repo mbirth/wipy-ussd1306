@@ -33,6 +33,7 @@ except:
     # WiPy
     import machine
 
+import gc
 import struct
 import time
 
@@ -196,7 +197,9 @@ class SSD1306:
     def clear(self):
         """ clear screen """
         self.position(0, 0)
+        gc.collect()
         self.data([0] * (self.height * self.width // 8))
+        gc.collect()
         self.position(0, 0)
 
     def sleep_ms(self, mseconds):
@@ -259,6 +262,5 @@ class SSD1306:
         arr = [dc] + arr
         #print(repr(arr))
         buf = struct.pack('B'*len(arr), *arr)
-        print(repr(buf))
+        #print(repr(buf))
         self.i2c.writeto(self.devid, buf)
-
